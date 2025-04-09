@@ -127,9 +127,3 @@
   </div>
 </section>
 
-<style>
-  /* Add this if you're not using a global CSS reset */
-  video {
-    background: black;
-  }
-</style>
