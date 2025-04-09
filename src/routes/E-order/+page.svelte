@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { navigate } from 'svelte-routing'; // For routing/redirection
+  import { goto } from '$app/navigation'; // SvelteKit navigation
   import QrScanner from 'qr-scanner';
   
   let hasCamera = false;
@@ -42,7 +42,7 @@
           isRedirecting = true;
           scanner.stop();
           // Redirect after a brief delay for better UX
-          setTimeout(() => navigate('/fnb'), 1000);
+          setTimeout(() => goto('/fnb'), 1000);
         }
       },
       {
@@ -60,6 +60,8 @@
     }
   }
 </script>
+
+<!-- The rest of the template remains exactly the same as in the previous answer -->
 
 <section class="min-h-screen bg-gray-50 p-4 md:p-8">
   <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6">
