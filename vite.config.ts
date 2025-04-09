@@ -17,6 +17,9 @@ export default defineConfig({
 			'$lib': path.resolve('src/lib')
 		}
 	},
+	ssr: {
+		noExternal: ['qr-scanner'] // 👈 Add this line
+	},
 	test: {
 		workspace: [
 			{
