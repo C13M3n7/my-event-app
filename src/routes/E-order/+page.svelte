@@ -1,11 +1,16 @@
 <script>
   import { onMount } from 'svelte';
-  import QrScanner from 'qr-scanner'; // You'll need to install this package
+  import { navigate } from 'svelte-routing'; // For routing/redirection
+  import QrScanner from 'qr-scanner';
   
   let hasCamera = false;
   let scanner = null;
   let scanResult = '';
   let isMobile = false;
+  let isRedirecting = false;
+  
+  // The specific QR content that triggers redirect to /fnb
+  const targetQRContent = "https://qrcodes.pro/mneWmK"; // Change this to match your QR code content
 
   // Check if mobile device
   onMount(() => {
@@ -31,7 +36,14 @@
       videoElement,
       result => {
         scanResult = result.data;
-        scanner.stop();
+        
+        // Check if scanned content matches our target
+        if (scanResult === targetQRContent) {
+          isRedirecting = true;
+          scanner.stop();
+          // Redirect after a brief delay for better UX
+          setTimeout(() => navigate('/fnb'), 1000);
+        }
       },
       {
         highlightScanRegion: true,
@@ -57,30 +69,40 @@
       <!-- Mobile QR Scanner Section -->
       <div class="mb-8">
         <h2 class="text-xl font-semibold text-gray-700 mb-4">Scan QR Code</h2>
-        <div class="relative aspect-square w-full max-w-md mx-auto border-2 border-gray-300 rounded-lg overflow-hidden">
-          <video id="qr-video" class="w-full h-full object-cover"></video>
-          <div class="absolute inset-0 border-4 border-blue-400 rounded pointer-events-none"></div>
-        </div>
         
-        <div class="mt-4 flex justify-center gap-4">
-          <button 
-            on:click={startScanner}
-            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-          >
-            Start Scanner
-          </button>
-          <button 
-            on:click={stopScanner}
-            class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
-          >
-            Stop Scanner
-          </button>
-        </div>
-        
-        {#if scanResult}
-          <div class="mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
-            Scanned: {scanResult}
+        {#if isRedirecting}
+          <div class="p-4 mb-4 bg-blue-100 border border-blue-400 text-blue-700 rounded">
+            <p>Redirecting to F&B page...</p>
           </div>
+        {:else}
+          <div class="relative aspect-square w-full max-w-md mx-auto border-2 border-gray-300 rounded-lg overflow-hidden">
+            <video id="qr-video" class="w-full h-full object-cover"></video>
+            <div class="absolute inset-0 border-4 border-blue-400 rounded pointer-events-none"></div>
+          </div>
+          
+          <div class="mt-4 flex justify-center gap-4">
+            <button 
+              on:click={startScanner}
+              class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+            >
+              Start Scanner
+            </button>
+            <button 
+              on:click={stopScanner}
+              class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+            >
+              Stop Scanner
+            </button>
+          </div>
+          
+          {#if scanResult}
+            <div class="mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+              Scanned: {scanResult}
+              {#if scanResult === targetQRContent}
+                <p class="mt-1 font-semibold">Valid F&B QR code detected!</p>
+              {/if}
+            </div>
+          {/if}
         {/if}
       </div>
     {:else if isMobile && !hasCamera}
@@ -128,7 +150,6 @@
 </section>
 
 <style>
-  /* Add this if you're not using a global CSS reset */
   video {
     background: black;
   }
