@@ -59,6 +59,7 @@
 		"@emailjs/browser": "^4.4.1",
 		"@firebase/auth": "^1.10.0",
 		"@firebase/firestore": "^4.7.10",
-		"firebase": "^11.6.0"
+		"firebase": "^11.6.0",
+		"qr-scanner": "^1.4.2"
 	}
 }
