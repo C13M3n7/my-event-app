@@ -42,7 +42,7 @@
           isRedirecting = true;
           scanner.stop();
           // Redirect after a brief delay for better UX
-          setTimeout(() => goto('/fnb'), 1000);
+          setTimeout(() => goto('/fnb-menu'), 1000);
         }
       },
       {
