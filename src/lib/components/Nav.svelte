@@ -51,6 +51,7 @@
   <div class={`absolute top-full right-0 left-0 bg-white shadow-md p-4 flex flex-col gap-3 transition-all duration-300 z-50 ${menuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}`}>
     <a href="/about" class="text-gray-700 hover:text-blue-500 transition py-2" on:click={toggleMenu}>About</a>
     <a href="/events" class="text-gray-700 hover:text-blue-500 transition py-2" on:click={toggleMenu}>Events</a>
+    <a href="/E-order" class="text-gray-700 hover:text-blue-500 transition py-2" on:click={toggleMenu}>E-order</a>
     
     {#if $user}
       <a href="/profile" class="text-gray-700 hover:text-blue-500 transition py-2" on:click={toggleMenu}>Profile</a>
