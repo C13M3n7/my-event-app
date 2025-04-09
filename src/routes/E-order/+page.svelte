@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { goto } from '$app/navigation'; // SvelteKit navigation
+  import { goto } from '$app/navigation';
   import QrScanner from 'qr-scanner';
   
   let hasCamera = false;
@@ -9,16 +9,15 @@
   let isMobile = false;
   let isRedirecting = false;
   
-  // The specific QR content that triggers redirect to /fnb
-  const targetQRContent = "https://qrcodes.pro/mneWmK"; // Change this to match your QR code content
+  // Array of valid QR code contents
+  const validQRTargets = [
+    "https://qrcodes.pro/mneWmK",
+    "https://fnb-redirect.com"
+  ];
 
-  // Check if mobile device
   onMount(() => {
     isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      checkCameraAvailability();
-    }
+    if (isMobile) checkCameraAvailability();
   });
 
   async function checkCameraAvailability() {
@@ -36,12 +35,10 @@
       videoElement,
       result => {
         scanResult = result.data;
-        
-        // Check if scanned content matches our target
-        if (scanResult === targetQRContent) {
+        // Check if scanned content matches any valid target
+        if (validQRTargets.includes(scanResult)) {
           isRedirecting = true;
           scanner.stop();
-          // Redirect after a brief delay for better UX
           setTimeout(() => goto('/fnb-menu'), 1000);
         }
       },
