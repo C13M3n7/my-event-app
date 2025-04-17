@@ -42,15 +42,6 @@
     let paymentReference = "";
     let processingPayment = false;
     
-    // Billplz form variables
-    let name = '';
-    let email = '';
-    let amount = '';
-    let description = 'Payment for event tickets';
-    let isLoading = false;
-    let paymentUrl = '';
-    let error = '';
-    
     // Ticket history
     let showTicketHistory = false;
     let purchasedTickets: Ticket[] = [];
@@ -79,8 +70,6 @@
         const priceValue = parseInt(cat.price.split(' ')[1]) || 0;
         return sum + (priceValue * cat.quantity);
       }, 0);
-      amount = totalPrice.toString();
-      description = `Payment for ${eventName} tickets`;
     }
 
     function handleQuantityChange(index: number, value: number) {
@@ -121,70 +110,17 @@
       }, 50);
     }
 
-    async function handleBillplzSubmit() {
-      if (!name || !email || !amount) {
-        error = 'Please fill in all fields';
-        return;
-      }
-
-      isLoading = true;
-      error = '';
-
-      try {
-        // Create payment record in Firestore first
-        const paymentRef = await addDoc(collection(db, 'payments'), {
-          name,
-          email,
-          amount: parseFloat(amount),
-          description,
-          status: 'pending',
-          createdAt: new Date().toISOString(),
-          event: eventName,
-          ticketDetails: categories.filter(cat => cat.quantity > 0).map(cat => ({
-            name: cat.name,
-            quantity: cat.quantity,
-            price: cat.price
-          }))
-        });
-
-        // Call our SvelteKit endpoint to create Billplz bill
-        const response = await fetch('/api/create-bill', {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-              name,
-              email,
-              amount: parseFloat(amount),
-              description,
-              callback_url: `${window.location.origin}/callback?payment_id=${paymentRef.id}`
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to create bill');
-        }
-
-        const bill = await response.json();
-
-        // Update Firestore with Billplz ID
-        await updateDoc(paymentRef, {
-          billplzId: bill.id,
-          billplzUrl: bill.url
-        });
-
-        // Redirect to Billplz payment page
-        window.location.href = bill.url;
-      } catch (err) {
-          error = err instanceof Error ? err.message : 'Payment failed. Please try again.';
-          isLoading = false;
-      }
-    }
-
     function confirmPayment() {
       processingPayment = true;
-      if (selectedPaymentMethod === "Spay") {
+      if (selectedPaymentMethod === "Card") {
+        paymentReference = `CARD-${Date.now().toString().slice(-8)}`;
+        setTimeout(() => {
+          paymentSuccess = true;
+          processingPayment = false;
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          addTicketToHistory();
+        }, 1500);
+      } else if (selectedPaymentMethod === "Spay") {
         paymentReference = `SPY-${Date.now().toString().slice(-8)}`;
         setTimeout(() => {
           paymentSuccess = true;
@@ -366,7 +302,7 @@
                     <div class="ticket-info-row">
                         <span class="info-label">Paid with</span>
                         <span class="info-value payment-method">
-                            {#if selectedTicket.paymentMethod === 'Card'}
+                            {#if selectedTicket.paymentMethod === 'Billplz'}
                                 <span class="payment-icon billplz">B</span>
                             {:else if selectedTicket.paymentMethod === 'Spay'}
                                 <span class="payment-icon spay">S</span>
@@ -509,35 +445,28 @@
                     <div class="payment-form-container">
                         {#if showBillplzForm}
                             <div class="billplz-form payment-form">
-                                {#if error}
-                                    <div class="error">{error}</div>
-                                {/if}
+                                <h3>Billplz Payment</h3>
+                                <div class="form-group">
+                                    <label for="card-name">Name on Card</label>
+                                    <input type="text" id="card-name" placeholder="Full name" required />
+                                </div>
                                 
-                                <form on:submit|preventDefault={handleBillplzSubmit}>
+                                <div class="form-group">
+                                    <label for="card-number">Card Number</label>
+                                    <input type="text" id="card-number" placeholder="1234 5678 9012 3456" required />
+                                </div>
+                                
+                                <div class="card-details">
                                     <div class="form-group">
-                                        <label for="name">Full Name</label>
-                                        <input type="text" id="name" bind:value={name} required />
+                                        <label for="expiry-date">Expiry Date</label>
+                                        <input type="text" id="expiry-date" placeholder="MM/YY" required />
                                     </div>
-                                
+                                    
                                     <div class="form-group">
-                                        <label for="email">Email</label>
-                                        <input type="email" id="email" bind:value={email} required />
+                                        <label for="cvv">CVV</label>
+                                        <input type="text" id="cvv" placeholder="123" required />
                                     </div>
-                                
-                                    <div class="form-group">
-                                        <label for="amount">Amount (MYR)</label>
-                                        <input type="number" id="amount" bind:value={amount} min="1" step="0.01" readonly />
-                                    </div>
-                                
-                                    <div class="form-group">
-                                        <label for="description">Description</label>
-                                        <textarea id="description" bind:value={description} readonly />
-                                    </div>
-                                
-                                    <button type="submit" disabled={isLoading}>
-                                        {isLoading ? 'Processing...' : 'Pay Now'}
-                                    </button>
-                                </form>
+                                </div>
                             </div>
                         {/if}
                     
@@ -554,23 +483,26 @@
                                         <p>3. Confirm the payment details</p>
                                     </div>
                                 </div>
-                                
-                                <button 
-                                    class="confirm-button" 
-                                    on:click={confirmPayment}
-                                >
-                                    Complete Payment
-                                </button>
                             </div>
                         {/if}
                     </div>
+
+                    <button 
+                        class="confirm-button" 
+                        on:click={confirmPayment}
+                        disabled={!selectedPaymentMethod}
+                    >
+                        {selectedPaymentMethod === 'Billplz' ? 'Pay with Billplz' : 
+                         selectedPaymentMethod === 'Spay' ? 'Pay with Spay' : 'Select Payment Method'}
+                    </button>
                 </div>
             {/if}
         </main>
     {/if}
 </div>
+    
 
-<style>
+  <style>
     :global(body) {
       margin: 0;
       padding: 0;
@@ -966,7 +898,7 @@
       font-size: 14px;
     }
     
-    select, input, textarea {
+    select, input {
       width: 100%;
       padding: 10px;
       border: 1px solid #ccc;
@@ -1147,6 +1079,102 @@
       color: #4CAF50;
     }
     
-    .success-message p {  
-      margin: 10px 0;
+    .success-message p {
+      margin-bottom: 15px;
+      line-height: 1.5;
     }
+    
+    .order-summary {
+      background-color: #f9f9f9;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 20px 0;
+      text-align: left;
+    }
+    
+    .success-qr-code {
+      width: 200px;
+      height: 200px;
+      border: 1px solid #ddd;
+      padding: 15px;
+      background: white;
+      margin: 20px auto;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .qr-instruction {
+      font-size: 14px;
+      color: #666;
+      margin-top: -10px;
+      margin-bottom: 20px;
+    }
+    
+    .success-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .download-button {
+      background-color: #4CAF50;
+      color: white;
+    }
+    
+    .download-button:hover {
+      background-color: #3e8e41;
+    }
+    
+    .view-tickets-button {
+      background-color: #4353e8;
+      color: white;
+    }
+    
+    .view-tickets-button:hover {
+      background-color: #3a46c9;
+    }
+    
+    .return-button {
+      background-color: #f5f5f5;
+      color: #333;
+      border: 1px solid #ddd;
+    }
+    
+    .return-button:hover {
+      background-color: #e9e9e9;
+    }
+    
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255,255,255,0.8);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+    
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top: 4px solid #4353e8;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 15px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
