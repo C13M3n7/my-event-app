@@ -1,4 +1,4 @@
-import { createBill } from '$lib/billplz';
+import { createBill } from '$lib/billplz.js';
 
 export async function POST({ request }) {
   try {
