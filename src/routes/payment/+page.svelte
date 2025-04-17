@@ -423,7 +423,7 @@
                     <div class="payment-methods">
                         <div class="payment-method" class:selected={selectedPaymentMethod === 'Card'} on:click={() => selectPaymentMethod('Card')}>
                             <div class="payment-method-content">
-                                <img src="https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.flaticon.com%2Ffree-icon%2Fbank-card_9063313&psig=AOvVaw03Qvq7hNB7ppyRRyyEAffB&ust=1744973248966000&source=images&cd=vfe&opi=89978449&ved=0CBQQjRxqFwoTCOjI6ojy3owDFQAAAAAdAAAAABAE" alt="Billplz" class="payment-icon" />
+                                <img src="https://cdn-icons-png.flaticon.com/512/9063/9063313.png" alt="Billplz" class="payment-icon" />
                                 <div class="payment-details">
                                     <span class="payment-name">Credit/Debit Card</span>
                                     <span class="payment-description">Visa, Mastercard, etc.</span>
