@@ -57,6 +57,7 @@
   let showTicketHistory = false;
   let purchasedTickets: Ticket[] = [];
   let selectedTicket: Ticket | null = null;
+  let shouldShowSuccess = false;
 
   function initializeEventType() {
     switch (eventType) {
@@ -177,9 +178,11 @@
       });
 
       // Redirect to Billplz payment page
-      window.location.href = bill.url;
+      paymentUrl = bill.url;
+        shouldShowSuccess = true;
     } catch (err) {
         error = err instanceof Error ? err.message : 'Payment failed. Please try again.';
+    } finally {
         isLoading = false;
     }
   }
@@ -227,6 +230,7 @@
 
   function returnToHome() {
     paymentSuccess = false;
+    shouldShowSuccess = false;
     showPaymentSection = false;
     selectedPaymentMethod = "";
     showBillplzForm = false;
@@ -234,7 +238,7 @@
     showTicketHistory = false;
     selectedTicket = null;
     initializeEventType();
-  }
+}
 
   function showTickets() {
     showTicketHistory = true;
@@ -401,41 +405,35 @@
   {:else if paymentSuccess}
       <!-- Payment Success Screen -->
       <main class="content">
-          <div class="success-message">
-              <h1>Payment Successful!</h1>
-              <p>Thank you for purchasing tickets to {eventName}!</p>
-              
-              <div class="qr-code-container">
-                  <img 
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-                          `EVENT:${eventName}|REF:${paymentReference}|AMOUNT:${eventType === 'free' ? 'FREE' : `RM${totalPrice}`}|DATE:${new Date().toLocaleDateString()}`
-                      )}`} 
-                      alt="Event Ticket QR Code"
-                      class="success-qr-code"
-                  />
-                  <p class="qr-instruction">Show this QR code at the event entrance</p>
-              </div>
-              
-              <div class="order-summary">
-                  <h2>Order Summary</h2>
-                  <p><strong>Event:</strong> {eventName}</p>
-                  <p><strong>Reference:</strong> {paymentReference}</p>
-                  <p><strong>Date:</strong> {new Date().toLocaleDateString()}</p>
-                  {#each categories as category}
-                      {#if category.quantity > 0}
-                          <p>{category.name}: {category.quantity} ticket{#if category.quantity > 1}s{/if}</p>
-                      {/if}
-                  {/each}
-                  <p><strong>Total Price:</strong> {eventType === 'free' ? 'FREE' : `RM ${totalPrice}`}</p>
-              </div>
-              
-              <div class="success-actions">
-                  <button class="download-button" on:click={downloadTicket}>Download E-Ticket (PDF)</button>
-                  <button class="view-tickets-button" on:click={showTickets}>View My Tickets</button>
-                  <button class="return-button" on:click={returnToHome}>Return To Home</button>
-              </div>
-          </div>
-      </main>
+        <div class="success-message">
+            <h1>Payment Initiated!</h1>
+            <p>You're being redirected to complete your payment for {eventName}.</p>
+            
+            <div class="qr-code-container">
+                <img 
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                        `EVENT:${eventName}|REF:${paymentReference}|AMOUNT:RM${totalPrice}|DATE:${new Date().toLocaleDateString()}`
+                    )}`} 
+                    alt="Payment QR Code"
+                    class="success-qr-code"
+                />
+                <p class="qr-instruction">Scan this QR code with your banking app if you're on mobile</p>
+            </div>
+            
+            <div class="order-summary">
+                <h2>Order Summary</h2>
+                <p><strong>Event:</strong> {eventName}</p>
+                <p><strong>Amount:</strong> RM {totalPrice}</p>
+                <p><strong>Date:</strong> {new Date().toLocaleDateString()}</p>
+            </div>
+            
+            <div class="success-actions">
+                <a href={paymentUrl} class="payment-button">Continue to Payment Page</a>
+                <button class="view-tickets-button" on:click={showTickets}>View My Tickets</button>
+                <button class="return-button" on:click={() => shouldShowSuccess = false}>Back to Payment Form</button>
+            </div>
+        </div>
+    </main>
   
   {:else}
       <!-- Ticket Purchase Screen -->
@@ -1265,5 +1263,27 @@
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(-10px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+
+    .payment-initiated {
+        text-align: center;
+    }
+    
+    .payment-initiated h1 {
+        color: #4353e8;
+    }
+    
+    .payment-redirect-button {
+        background-color: #4CAF50;
+        color: white;
+        padding: 14px;
+        border-radius: 4px;
+        text-decoration: none;
+        display: block;
+        margin-bottom: 10px;
+    }
+    
+    .payment-redirect-button:hover {
+        background-color: #3e8e41;
     }
 </style>
