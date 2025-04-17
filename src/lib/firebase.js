@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, updateDoc } from 'firebase/firestore';
+import { getAuth, signOut } from 'firebase/auth'; // 👈 add this
 
 const firebaseConfig = {
     apiKey: "AIzaSyBJd6jrp5FZQ4TckSyLd9Q3z1JM2WBl1lw",
@@ -13,5 +14,11 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app); // 👈 add this
 
-export { db, collection, addDoc, updateDoc }; 
+// 👇 optional logout helper
+function logout() {
+    return signOut(auth);
+}
+
+export { db, collection, addDoc, updateDoc, auth, logout }; // 👈 updated exports
