@@ -100,7 +100,7 @@
 
     function selectPaymentMethod(method: string) {
       selectedPaymentMethod = method;
-      showBillplzForm = method === 'Billplz';
+      showBillplzForm = method === 'Card';
       showSpayForm = method === 'Spay';
       setTimeout(() => {
         const formElement = document.querySelector('.payment-form-container');
@@ -112,8 +112,8 @@
 
     function confirmPayment() {
       processingPayment = true;
-      if (selectedPaymentMethod === "Billplz") {
-        paymentReference = `BLZ-${Date.now().toString().slice(-8)}`;
+      if (selectedPaymentMethod === "Card") {
+        paymentReference = `CARD-${Date.now().toString().slice(-8)}`;
         setTimeout(() => {
           paymentSuccess = true;
           processingPayment = false;
@@ -421,12 +421,12 @@
 
                     <h3>Payment Method</h3>
                     <div class="payment-methods">
-                        <div class="payment-method" class:selected={selectedPaymentMethod === 'Billplz'} on:click={() => selectPaymentMethod('Billplz')}>
+                        <div class="payment-method" class:selected={selectedPaymentMethod === 'Card'} on:click={() => selectPaymentMethod('Card')}>
                             <div class="payment-method-content">
-                                <img src="https://www.exabytes.my/partners/wp-content/uploads/billplz-2.png" alt="Billplz" class="payment-icon" />
+                                <img src="https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.flaticon.com%2Ffree-icon%2Fbank-card_9063313&psig=AOvVaw03Qvq7hNB7ppyRRyyEAffB&ust=1744973248966000&source=images&cd=vfe&opi=89978449&ved=0CBQQjRxqFwoTCOjI6ojy3owDFQAAAAAdAAAAABAE" alt="Billplz" class="payment-icon" />
                                 <div class="payment-details">
-                                    <span class="payment-name">Billplz</span>
-                                    <span class="payment-description">Secure online payments</span>
+                                    <span class="payment-name">Credit/Debit Card</span>
+                                    <span class="payment-description">Visa, Mastercard, etc.</span>
                                 </div>
                             </div>
                         </div>
