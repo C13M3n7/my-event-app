@@ -536,7 +536,7 @@
                                       <textarea id="description" bind:value={description} readonly />
                                   </div>
                               
-                                  <button type="submit" disabled={isLoading}>
+                                  <button type="submit" class="confirm-button" disabled={isLoading}>
                                       {isLoading ? 'Processing...' : 'Pay Now'}
                                   </button>
                               </form>
