@@ -400,13 +400,6 @@
       
   {:else if paymentSuccess}
       <!-- Payment Success Screen -->
-      <header class="app-header">
-        <button class="back-button" on:click={returnToHome}>
-          <span class="back-arrow">←</span> Back
-        </button>
-        <div class="header-title">Payment Successful</div>
-      </header>
-      
       <main class="content">
           <div class="success-message">
               <h1>Payment Successful!</h1>
