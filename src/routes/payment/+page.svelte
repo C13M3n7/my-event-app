@@ -160,7 +160,8 @@
             email,
             amount: parseFloat(amount),
             description,
-            callback_url: `${window.location.origin}/callback?payment_id=${paymentRef.id}`
+            callback_url: `${window.location.origin}/callback?payment_id=${paymentRef.id}`,
+            redirect_url: `${window.location.origin}/payment-confirmation?payment_id=${paymentRef.id}`
         })
       });
 
@@ -260,6 +261,20 @@
 
   onMount(() => {
     initializeEventType();
+    const urlParams = new URLSearchParams(window.location.search);
+    const billplz_id = urlParams.get('billplz[id]');
+    const billplz_paid = urlParams.get('billplz[paid]');
+    
+    if (billplz_id && billplz_paid === 'true') {
+      // Payment was successful
+      paymentSuccess = true;
+      paymentReference = billplz_id;
+      addTicketToHistory();
+    } else if (billplz_id) {
+      // Payment failed
+      paymentSuccess = false;
+      paymentReference = billplz_id;
+    }
   });
 </script>
 

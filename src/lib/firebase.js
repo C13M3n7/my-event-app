@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, updateDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, updateDoc, doc, getDoc } from 'firebase/firestore';
 import { getAuth, signOut } from 'firebase/auth'; // 👈 add this
 
 const firebaseConfig = {
@@ -21,4 +21,4 @@ function logout() {
     return signOut(auth);
 }
 
-export { db, collection, addDoc, updateDoc, auth, logout }; // 👈 updated exports
+export { db, collection, addDoc, updateDoc, auth, logout, doc, getDoc }; // 👈 updated exports
