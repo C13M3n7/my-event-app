@@ -15,9 +15,14 @@
     "https://fnb-redirect.com"
   ];
 
-  onMount(() => {
+  onMount(async () => {
     isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    if (isMobile) checkCameraAvailability();
+    if (isMobile) {
+      await checkCameraAvailability();
+      if (hasCamera) {
+        startScanner();
+      }
+    }
   });
 
   async function checkCameraAvailability() {
@@ -58,8 +63,6 @@
   }
 </script>
 
-<!-- The rest of the template remains exactly the same as in the previous answer -->
-
 <section class="min-h-screen bg-gray-50 p-4 md:p-8">
   <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6">
     <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">E-order System</h1>
@@ -81,12 +84,6 @@
           
           <div class="mt-4 flex justify-center gap-4">
             <button 
-              on:click={startScanner}
-              class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-            >
-              Start Scanner
-            </button>
-            <button 
               on:click={stopScanner}
               class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
             >
@@ -97,8 +94,10 @@
           {#if scanResult}
             <div class="mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
               Scanned: {scanResult}
-              {#if scanResult === targetQRContent}
+              {#if validQRTargets.includes(scanResult)}
                 <p class="mt-1 font-semibold">Valid F&B QR code detected!</p>
+              {:else}
+                <p class="mt-1 font-semibold text-red-600">Invalid QR code</p>
               {/if}
             </div>
           {/if}
