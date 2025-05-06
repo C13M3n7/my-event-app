@@ -1,73 +1,41 @@
-<!--homepage-->
+<!-- Home (Tailwind CSS Version) -->
 
-<main class="hero">
-  <section class="intro">
-    <h1>Discover & Experience Events Around You</h1>
-    <p>From concerts to food festivals, City Services brings the city to your fingertips.</p>
-    <a href="/events" class="cta-button">Browse Events</a>
+<main class="flex justify-center items-center py-16 px-4 text-center bg-gradient-to-br from-[#c1f0f6] to-[#d9fce4] min-h-[80vh]">
+  <section class="max-w-[600px] p-6">
+    <h1 class="text-[2rem] text-[#075985] mb-4 font-sans font-semibold">Discover & Experience Events Around You</h1>
+    <p class="text-[1.1rem] text-[#2e2e2e] mb-8 font-sans">From concerts to food festivals, City Services brings the city to your fingertips.</p>
+    <a
+      href="/events"
+      class="bg-[#10b981] text-white py-3 px-6 text-base rounded-lg no-underline transition-colors duration-300 hover:bg-[#059669] inline-block"
+    >
+      Browse Events
+    </a>
   </section>
 </main>
 
-<style>
+<script lang="ts">
+  import { onMount } from 'svelte';
+
+  onMount(() => {
+    document.body.className = 'bg-[#f5f9f8] text-[#1a1a1a] font-sans m-0';
+  });
+</script>
+
+<style global>
   :global(body) {
-    margin: 0;
     font-family: 'Segoe UI', sans-serif;
-    background: #f5f9f8;
-    color: #1a1a1a;
-  }
-
-  .hero {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 4rem 1rem;
-    text-align: center;
-    background: linear-gradient(135deg, #c1f0f6, #d9fce4);
-    min-height: 80vh;
-  }
-
-  .intro {
-    max-width: 600px;
-    padding: 1.5rem;
-  }
-
-  h1 {
-    font-size: 2rem;
-    color: #075985;
-    margin-bottom: 1rem;
-  }
-
-  p {
-    font-size: 1.1rem;
-    margin-bottom: 2rem;
-    color: #2e2e2e;
-  }
-
-  .cta-button {
-    background-color: #10b981;
-    color: white;
-    padding: 0.75rem 1.5rem;
-    font-size: 1rem;
-    border: none;
-    border-radius: 8px;
-    text-decoration: none;
-    transition: background-color 0.3s ease;
-  }
-
-  .cta-button:hover {
-    background-color: #059669;
   }
 
   @media (max-width: 600px) {
-    h1 {
+    :global(h1) {
       font-size: 1.5rem;
     }
 
-    p {
+    :global(p) {
       font-size: 1rem;
     }
 
-    .cta-button {
+    :global(a) {
       width: 100%;
     }
   }

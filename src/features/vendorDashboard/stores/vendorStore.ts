@@ -1,0 +1,1 @@
+// State for vendor-specific data

@@ -1,0 +1,19 @@
+{
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs22",  
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log"
+    ],
+    "runtimeOptions": {
+      "timeoutSeconds": 120,
+      "memory": "512MB"  
+    },
+    "env": {
+      "SENDGRID_API_KEY": "{config:sendgrid.key}"
+    }
+  }
+}

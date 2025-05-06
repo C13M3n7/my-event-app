@@ -1,0 +1,15 @@
+[build]
+  command = "npm run build"
+  publish = "build"
+
+[build.environment]
+  SENDGRID_API_KEY = "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"  # Your actual key here
+
+[dev]
+  framework = "svelte-kit"
+  targetPort = 5173
+  autoLaunch = false
+
+[[edge_functions]]
+  function = "send-email"
+  path = "/api/send-email"  # or whatever path you want to use

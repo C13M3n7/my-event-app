@@ -1,2 +1,2 @@
 @import 'tailwindcss';
-@plugin '@tailwindcss/typography';
+/* Removed invalid @plugin rule. Configure plugins in tailwind.config.js */

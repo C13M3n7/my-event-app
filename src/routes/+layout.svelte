@@ -1,25 +1,20 @@
+<!-- src/routes/+layout.svelte -->
+
 <script lang="ts">
-	import Nav from '$lib/components/Nav.svelte';
-	import '../app.css';
-	import { page } from '$app/stores';
-	import { derived } from 'svelte/store';
+  import Nav from '$features/shared/components/Header.svelte'; // Adjust path if needed
+  import '../app.css';
+  import { page } from '$app/stores';
+  import { derived } from 'svelte/store';
 
-	// List of paths where nav should be hidden
-	const noNavPaths = [
-		'/cart',
-		'/fnb-menu',
-		'/payment-confirmation', 
-		'/checkout'
-	];
+  const noNavPaths = ['/cart', '/fnb-menu', '/fnb-payment', '/vendor-dashboard', '/admin-dashboard'];
 
-	// Derived store to check if nav should be shown
-	const showNav = derived(page, ($page) => {
-		return !noNavPaths.some(path => $page.url.pathname.startsWith(path));
-	});
+  const showNav = derived(page, ($page) => {
+    return !noNavPaths.some(path => $page.url.pathname.startsWith(path));
+  });
 </script>
 
 {#if $showNav}
-	<Nav />
+  <Nav />
 {/if}
 
 <slot />

@@ -1,97 +1,77 @@
-<!-- event_listing -->
-<script>
-    let events = [
-      {
-        id: '1',
-        title: 'Harvest Fusion Festival',
-        date: '2025-05-23',
-        location: 'Tropics City',
-        image: 'images/event1.png',
-      },
-      {
-        id: '2',
-        title: 'Food Fiesta 2025',
-        date: '2025-04-28',
-        location: 'Riverfront Square',
-        image: 'images/event2.png',
-      },
-      {
-        id: '3',
-        title: 'Art & Craft Weekend',
-        date: '2025-05-05',
-        location: 'City Hall Courtyard',
-        image: 'images/event3.jpg',
-      },
-    ];
+<script lang="ts">
+    import { onMount } from 'svelte';
+    import { getUpcomingEvents, type Event } from '$features/events/services/eventService';
+    import EventCard from '$features/events/components/EventCard.svelte';
+    import { Timestamp } from 'firebase/firestore';
+
+    let events: { id: string; title: string; date: string; location: string; image: string }[] = [];
+  
+    onMount(async () => {
+  console.log("Fetching events...");
+  const fetchedEvents = await getUpcomingEvents();
+  console.log("Fetched events:", fetchedEvents);
+
+  if (!fetchedEvents || fetchedEvents.length === 0) {
+    console.log("No events found.");
+    return;
+  }
+
+  // Map the fetched events to match EventCard props
+  events = fetchedEvents.map((event) => {
+    console.log(`Processing event: ${event.title}`);
+
+    // Initialize eventDate as "Date not available"
+    let eventDate = "Date not available";
+
+    // Log the festival_dates field to inspect its content
+    console.log("Festival dates:", event.festival_dates);
+
+    // Check if start_date exists and is a Firestore Timestamp
+    if (event.start_date && event.start_date instanceof Timestamp) {
+      const date = event.start_date.toDate();
+      eventDate = date.toLocaleDateString();
+    } else if (event.festival_dates?.start && event.festival_dates.start instanceof Timestamp) {
+      const date = event.festival_dates.start.toDate();
+      console.log(`Festival start date found: ${date}`);
+      eventDate = date.toLocaleDateString();
+    } else if (event.retail_dates?.start && event.retail_dates.start instanceof Timestamp) {
+      const date = event.retail_dates.start.toDate();
+      eventDate = date.toLocaleDateString();
+    } else {
+      console.log("No valid date fields found.");
+    }
+
+    // Handle location
+    const eventLocation = event.location?.address || event.location?.name || "Location not available";
+    console.log(`Event location: ${eventLocation}`);
+
+    // Return the transformed event object
+    return {
+      id: event.id,
+      title: event.title,
+      date: eventDate,
+      location: eventLocation,
+      image: event.image_url,
+    };
+  });
+
+  console.log('Transformed events:', events);
+});
+
   </script>
   
-  <main class="listing">
-    <h1>Upcoming Events</h1>
-    <div class="event-grid">
-      {#each events as event}
-        <a href="/events/{event.id}" class="event-card">  <!-- Simplified link syntax -->
-          <img src={event.image} alt={event.title} />
-          <div class="info">
-            <h2>{event.title}</h2>
-            <p>{event.date} · {event.location}</p>
-          </div>
-        </a>
-      {/each}
+  <div class="p-8">
+    <div class="container mx-auto">
+      {#if events.length > 0}
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+          {#each events as event (event.id)}
+          <a href={`/events/${event.id}`} class="block hover:opacity-90 transition-opacity">
+            <EventCard {event} />
+          </a>
+        {/each}        
+        </div>
+      {:else}
+        <p class="text-center text-xl text-gray-600">No upcoming events available.</p>
+      {/if}
     </div>
-  </main>
-  
-  
-  <style>
-    .listing {
-      padding: 2rem 1rem;
-      max-width: 1200px;
-      margin: auto;
-    }
-  
-    h1 {
-      text-align: center;
-      color: #075985;
-      margin-bottom: 2rem;
-    }
-  
-    .event-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1.5rem;
-    }
-  
-    .event-card {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-      overflow: hidden;
-      text-decoration: none;
-      color: inherit;
-      transition: transform 0.2s ease;
-    }
-  
-    .event-card:hover {
-      transform: scale(1.02);
-    }
-  
-    img {
-      width: 100%;
-      height: 160px;
-      object-fit: cover;
-    }
-  
-    .info {
-      padding: 1rem;
-    }
-  
-    .info h2 {
-      font-size: 1.2rem;
-      color: #047857;
-      margin-bottom: 0.5rem;
-    }
-  
-    .info p {
-      color: #4b5563;
-      font-size: 0.95rem;
-    }
-  </style>
+  </div>

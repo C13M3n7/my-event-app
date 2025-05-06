@@ -1,16 +1,35 @@
 {
+  "extends": "./.svelte-kit/tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "types": ["svelte", "vite/client"],
     "paths": {
-      "$app/*": ["node_modules/@sveltejs/kit/src/runtime/app/*"],
-      "$lib/*": ["src/lib/*"]
-    }
+      "$lib": ["src/lib"],
+      "$lib/*": ["src/lib/*"],
+      "$features": ["src/features"],
+      "$features/*": ["src/features/*"],
+      "$app/*": ["./.svelte-kit/types/runtime/app/*"],
+      "$env/*": ["./.svelte-kit/ambient.d.ts"]
+    },
+    "types": ["svelte", "vite/client"],
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.svelte",
-    "globals.d.ts",
-    "svelte.config.js", "vite.config.ts", ".svelte-kit/types"
+    "src/**/*.js",
+    "vite.config.ts",
+    ".svelte-kit/types/**/*.d.ts",
+    "global.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "build",
+    "dist",
+    ".svelte-kit"
   ]
 }

@@ -13,10 +13,12 @@ export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 	resolve: {
 		alias: {
-			// Add the alias for $lib
-			'$lib': path.resolve('src/lib')
+		  '$lib': path.resolve('src/lib'),
+		  '$lib/*': path.resolve('src/lib/*'),
+		  '$features': path.resolve('src/features'),       // Base path (optional)
+		  '$features/*': path.resolve('src/features/*')   // Wildcard for subpaths
 		}
-	},
+	  },
 	test: {
 		workspace: [
 			{
