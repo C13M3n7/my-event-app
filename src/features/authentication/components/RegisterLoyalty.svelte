@@ -5,8 +5,9 @@
   import LoyaltyProfileForm from './LoyaltyProfileForm.svelte';
   import { auth, googleProvider, facebookProvider } from '$lib/firebase';
   import { signInWithPopup } from 'firebase/auth';
-  import { doc, getDoc } from 'firebase/firestore';
+  import { doc, getDoc, setDoc } from 'firebase/firestore';
   import { db } from '$lib/firebase';
+  import { goto } from '$app/navigation';
   import { 
     sendPhoneVerification, 
     verifyPhoneOTP, 
@@ -14,7 +15,6 @@
     verifyEmailOTP,
     saveLoyaltyProfile
   } from '../services/authService';
-  import { goto } from '$app/navigation';
 
   // State variables
   let activeTab: 'email' | 'phone' = 'email';
@@ -37,15 +37,35 @@
   let showProfileForm = false;
   let profileComplete = false;
   let registrationComplete = false;
-  let showSuccessMessage = false; // New state variable
+  let showSuccessMessage = false;
+    // Add uid to state variables
+    let uid = '';
 
   const registrationFlowParams = {
     title: 'Loyalty Program Registration',
     redirectUrl: 'loyalty',
-    programType: 'LOYALTY_PROGRAM' as const,
+    programType: 'LOYALTY_PROGRAM' as const, // Add 'as const' to ensure type inference
     showProfileForm
   };
 
+  const sendVerification = async () => {
+    error = "";
+    isLoading = true;
+    try {
+      if (activeTab === 'phone') {
+        displayPhone = `${countryCode}${phone}`;
+        confirmationResult = await sendPhoneVerification(displayPhone);
+      } else if (activeTab === 'email') {
+        await sendEmailOTP(email, 'REGISTRATION');
+      }
+      otpSent = true;
+      startCountdown();
+    } catch (err: unknown) {
+      error = err instanceof Error ? err.message : 'Failed to send verification';
+    } finally {
+      isLoading = false;
+    }
+  };
 
   const verifyOTP = async () => {
     isWaitingForAuth = true;
@@ -58,9 +78,22 @@
         return;
       }
 
-      await verifyEmailOTP(email, fullOtp, 'LOYALTY_PROGRAM');
+      const result = await verifyEmailOTP(email, fullOtp, 'REGISTRATION');
       verifiedEmail = email;
+      uid = result.uid; // Store the UID from verification
       showProfileForm = true;
+      
+      // Create user document with UID as ID
+      const userRef = doc(db, 'users', uid);
+      await setDoc(userRef, {
+        email: verifiedEmail,
+        type: 'LOYALTY_PROGRAM',
+        profileComplete: false,
+        authMethod: 'EMAIL',
+        createdAt: new Date().toISOString(),
+        verified: true
+      });
+      
     } catch (err: unknown) {
       error = err instanceof Error ? err.message : 'Verification failed';
       otp = Array(6).fill('');
@@ -74,26 +107,34 @@
       isLoading = true;
       error = "";
       
-      // Save profile
-      await saveLoyaltyProfile(verifiedEmail, {
-        ...event.detail,
-        email: verifiedEmail // Ensure email is included
-      });
+      // Use the stored UID for the document reference
+      const userRef = doc(db, 'users', uid);
       
-      // Show success and redirect
+      await setDoc(userRef, {
+      ...event.detail,
+      type: 'LOYALTY_PROGRAM', // Ensure type is always included
+      email: verifiedEmail,
+      profileComplete: true,
+      loyaltyMember: true,
+      points: 0,
+      tier: 'silver',
+      status: 'active',
+      updatedAt: new Date().toISOString(),
+      authMethod: auth.currentUser?.providerData[0]?.providerId === 'password' 
+        ? 'EMAIL' 
+        : auth.currentUser?.providerData[0]?.providerId?.split('.')[0].toUpperCase() || 'EMAIL'
+    }, { merge: true });
+      
       showSuccessMessage = true;
       setTimeout(() => goto('/loyalty'), 2000);
-      
     } catch (err: unknown) {
       error = err instanceof Error ? err.message : 'Failed to save profile';
-      console.error('Profile submission error:', error);
+      console.error('Profile submission error:', err);
     } finally {
       isLoading = false;
     }
   };
 
-
-  // Modified handleSocialLogin function
   const handleSocialLogin = async (provider: 'google' | 'facebook') => {
     try {
       socialLoading = provider;
@@ -103,26 +144,42 @@
         provider === 'google' ? googleProvider : facebookProvider
       );
       
-      const userEmail = result.user?.email;
-      if (!userEmail) throw new Error('No email found from social login');
+      const user = result.user;
+      if (!user.email || !user.uid) throw new Error('No email or UID found from social login');
       
-      const userRef = doc(db, 'users', userEmail);
+      const userEmail = user.email.toLowerCase();
+      uid = user.uid; // Store the UID
+      verifiedEmail = userEmail;
+      
+      const userRef = doc(db, 'users', uid);
       const userDoc = await getDoc(userRef);
       
-      // Always show profile form if userDoc doesn't exist or profileComplete is not true
+      const userData = {
+        email: userEmail,
+        authMethod: provider.toUpperCase(),
+        lastLogin: new Date().toISOString(),
+        verified: true,
+        type: 'LOYALTY_PROGRAM'
+      };
+
       if (userDoc.exists() && userDoc.data()?.profileComplete === true) {
+        // Existing user with complete profile
+        await setDoc(userRef, {
+          ...userData,
+          lastLogin: new Date().toISOString()
+        }, { merge: true });
+        
         showSuccessMessage = true;
         setTimeout(() => goto('/loyalty'), 2000);
       } else {
-        // Show profile form for all other cases
-        verifiedEmail = userEmail;
+        // New user or incomplete profile
         showProfileForm = true;
         
-        // Create/update user document if needed
-        if (!userDoc.exists() || !userDoc.data()?.profileComplete) {
-          // You might want to initialize the user document here
-          // await setDoc(userRef, { profileComplete: false }, { merge: true });
-        }
+        await setDoc(userRef, {
+          ...userData,
+          createdAt: new Date().toISOString(),
+          profileComplete: false
+        });
       }
     } catch (err: unknown) {
       const e = err instanceof Error ? err : new Error(String(err));
@@ -132,26 +189,6 @@
       socialLoading = null;
     }
   };
-
-  const sendVerification = async () => {
-    error = "";
-    isLoading = true;
-    try {
-      if (activeTab === 'phone') {
-        displayPhone = `${countryCode}${phone}`;
-        confirmationResult = await sendPhoneVerification(displayPhone);
-      } else if (activeTab === 'email') {
-        await sendEmailOTP(email, 'LOYALTY_PROGRAM');
-      }
-      otpSent = true;
-      startCountdown();
-    } catch (err: unknown) {
-      error = err instanceof Error ? err.message : 'Failed to send verification';
-    } finally {
-      isLoading = false;
-    }
-  };
-
   function resetOTP() {
     otp = Array(6).fill('');
   }

@@ -4,11 +4,13 @@
   let events = [];
 
   function addEvent(newEvent) {
-    // Assign a unique ID if not provided
-    if (!newEvent.id) {
-      newEvent.id = Date.now();
+    if (!newEvent || typeof newEvent !== 'object') return;
+    try {
+      if (!newEvent.id) newEvent.id = Date.now();
+      events = [...events, newEvent];
+    } catch (err) {
+      console.error('Add Event Error:', err);
     }
-    events = [...events, newEvent];
   }
 
   function updateEvent(updated) {

@@ -1,94 +1,99 @@
-import { runTransaction, doc, deleteDoc, setDoc } from 'firebase/firestore';
-import { auth, db } from '$lib/firebase';
-import { waitForEmailAuth } from './authStateService';
+import { db } from '$lib/firebase';
+import { doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { EmailService } from './emailService';
-import type { User as FirebaseUser } from 'firebase/auth';
+import { httpsCallable } from 'firebase/functions';
+import { FirebaseError } from 'firebase/app';
+import { functions } from '$lib/firebase'; // Import from your centralized firebase config
 
-// Constants
-const OTP_EXPIRATION_MINUTES = 30;
+const OTP_EXPIRATION_MINUTES = 10;
 
-export const sendEmailOTP = async (email: string, purpose?: string): Promise<void> => {
-  const otpRef = doc(db, 'emailOtps', email);
+// In your authService.ts or wherever verifyEmailOTP is defined
+interface OtpResponse {
+  token?: string; // Optional if you're not using it
+  customToken: string; // Add this
+  uid: string;
+  email: string;
+  isAdmin: boolean;
+  isNewUser?: boolean;
+}
 
+export async function verifyEmailOTP(
+  email: string, 
+  otp: string, 
+  purpose: 'REGISTRATION' | 'LOGIN' | 'ADMIN_LOGIN'
+): Promise<OtpResponse> {
   try {
-    await deleteDoc(otpRef);
-  } catch (error) {
-    console.log('No existing OTP to clear');
+    const verifyOTP = httpsCallable<{
+      email: string;
+      otp: string;
+      purpose: string;
+    }, any>(functions, 'verifyOtp');
+
+    const result = await verifyOTP({ 
+      email: email.trim().toLowerCase(), 
+      otp, 
+      purpose 
+    });
+    
+    if (!result.data?.customToken) {
+      console.error('Invalid response structure:', result.data);
+      throw new Error('Authentication token missing in response');
+    }
+    
+    return {
+      uid: result.data.uid,
+      email: email,
+      customToken: result.data.customToken,
+      isAdmin: result.data.isAdmin ?? false,
+      isNewUser: result.data.isNewUser ?? false
+    };
+
+  } catch (error: any) {
+    console.error('Complete OTP Error:', error);
+    throw error; // Preserve original error
   }
+}
 
-  const generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = new Date(Date.now() + OTP_EXPIRATION_MINUTES * 60 * 1000);
-
-  console.log(`[OTP Creation] Generated OTP for ${email} at ${new Date().toISOString()}. Expires at: ${expiresAt.toISOString()}`);
-
-  await setDoc(otpRef, {
-    otp: generatedOTP,
-    createdAt: new Date().toISOString(),
-    expiresAt: expiresAt.toISOString(),
-    verified: false,
-    attempts: 0,
-    purpose: purpose || 'general' // Store the purpose with the OTP
-  });
-
-  try {
-    console.log(`[OTP Sent] Sending OTP to ${email} at ${new Date().toISOString()}`);
-    await EmailService.sendOTP({ email, otp: generatedOTP });
-    console.log(`[OTP Sent] OTP sent to ${email} successfully at ${new Date().toISOString()}`);
-  } catch (error) {
-    console.error("Failed to send OTP email:", error instanceof Error ? error.message : 'Unknown error');
-    throw error;
-  }
+// Update checkAdminStatus to use UID consistently
+export const checkAdminStatus = async (uid: string): Promise<boolean> => {
+  const userRef = doc(db, 'users', uid);
+  const userDoc = await getDoc(userRef);
+  return userDoc.exists() && userDoc.data()?.admin === true; // Keep consistent with your actual field name
 };
 
-export const verifyEmailOTP = async (email: string, otp: string, purpose?: string): Promise<void> => {
-  console.log(`[OTP Verification] Verifying OTP for ${email}`);
+export const sendEmailOTP = async (email: string, purpose: 'REGISTRATION' | 'LOGIN' | 'ADMIN_LOGIN'): Promise<void> => {
+  // For LOGIN/ADMIN_LOGIN, check if user exists
+  if (purpose !== 'REGISTRATION') {
+      // Query users collection where email field matches
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', email.trim().toLowerCase()));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) throw new Error('No account found with this email');
+      
+      const userDoc = querySnapshot.docs[0];
+      
+      // For ADMIN_LOGIN, verify admin status
+      if (purpose === 'ADMIN_LOGIN' && !userDoc.data()?.admin) {
+          throw new Error('Admin access denied');
+      }
+  }
 
-  await runTransaction(db, async (transaction) => {
-    const otpRef = doc(db, 'emailOtps', email);
-    const otpDoc = await transaction.get(otpRef);
+  // Rest of the function remains the same...
+  const otpRef = doc(db, 'emailOtps', email);
+    await deleteDoc(otpRef).catch(() => {});
 
-    if (!otpDoc.exists()) {
-      throw new Error('OTP not found. Please request a new one.');
-    }
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + OTP_EXPIRATION_MINUTES * 60 * 1000);
 
-    const otpData = otpDoc.data();
-    const expiresAt = new Date(otpData.expiresAt);
-
-    if (new Date().getTime() > expiresAt.getTime()) {
-      transaction.delete(otpRef);
-      throw new Error('OTP expired. Please request a new code.');
-    }
-
-    if (otpData.verified) {
-      transaction.delete(otpRef);
-      throw new Error('This OTP was already used.');
-    }
-
-    if (otpData.otp !== otp) {
-      transaction.update(otpRef, { attempts: (otpData.attempts || 0) + 1 });
-      throw new Error('Invalid OTP code');
-    }
-
-    if (purpose && otpData.purpose !== purpose) {
-      throw new Error('This OTP is not valid for the current action');
-    }
-
-    // Add user creation for event registration
-    if (purpose === 'EVENT_REGISTRATION') {
-      const userRef = doc(db, 'users', email);
-      const userData = {
-        email,
-        type: 'EVENT_REGISTRATION',
+    await setDoc(otpRef, {
+        otp,
         createdAt: new Date().toISOString(),
-        verified: true,
-        authMethod: 'email'
-      };
-      transaction.set(userRef, userData, { merge: true });
-    }
-
-    transaction.update(otpRef, {
-      verified: true,
-      verifiedAt: new Date().toISOString()
+        expiresAt: expiresAt.toISOString(),
+        verified: false,
+        attempts: 0,
+        purpose
     });
-  });
+
+    await EmailService.sendOTP({ email, otp });
 };

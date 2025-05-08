@@ -1,31 +1,72 @@
-<script>
-    import UserTable from '$features/adminDashboard/components/UserTable.svelte';
+<script lang="ts">
+  // =============================
+  // Imports
+  // =============================
+  import { onMount } from 'svelte';
+  import { getFirestore, collection, getDocs } from 'firebase/firestore';
+  import { auth } from '$lib/firebase';  
+  import UserTable from '$features/adminDashboard/components/UserTable.svelte';
+  import AdminManagement from '$features/adminDashboard/components/AdminManagement.svelte';
+  import type { User } from '$features/adminDashboard/types/roleTypes';
+
+  // =============================
+  // State Variables
+  // =============================
+  let users: User[] = [];
+  let loading = true;
+  let error: string | null = null;
+  let isAdmin: boolean = false;
+
+  // =============================
+  // Lifecycle: onMount
+  // =============================
+  onMount(async () => {
+    try {
+      const token = await auth.currentUser?.getIdTokenResult(true);
+      isAdmin = !!token?.claims?.admin;
+
+      // ---------------------------------------------
+      // Step 2: Fetch all users from Firestore
+      // ---------------------------------------------
+      const db = getFirestore();
+      const querySnapshot = await getDocs(collection(db, 'users'));
+
+      users = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          email: data.email || '',
+          role: data.admin ? 'Super Admin' : 'Non Admin',
+          uid: data.uid || doc.id
+        };
+      });
+    } catch (err) {
+      console.error("Error loading dashboard:", err);
+      error = "Failed to load dashboard data";
+    } finally {
+      loading = false;
+    }
+  });
 </script>
-  
-  <!-- Container for admin dashboard -->
-  <div class="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8">
-    <!-- Header -->
-    <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Admin Dashboard</h1>
-  
-    <!-- Desktop & Tablet View -->
-    <div class="hidden md:block">
-      <div class="bg-white rounded-2xl shadow-md p-6">
-        <h2 class="text-xl font-semibold mb-4 text-gray-700">All Users</h2>
-        <UserTable />
-      </div>
-    </div>
-  
-    <!-- Mobile View -->
-    <div class="block md:hidden">
-      <div class="bg-white rounded-2xl shadow-md p-4">
-        <h2 class="text-lg font-semibold mb-3 text-gray-700">Users</h2>
-        <p class="text-sm text-gray-500 mb-2">
-          Swipe right to see full table or rotate your phone for a better view.
-        </p>
-        <div class="overflow-x-auto">
-          <UserTable />
-        </div>
-      </div>
-    </div>
+
+<!-- =============================
+     UI: Error Message (if any)
+============================= -->
+{#if error}
+  <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+    {error}
   </div>
-  
+{/if}
+
+<!-- Admin Management Component -->
+  <!-- Add heading -->
+  <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+   
+  <AdminManagement />
+
+
+<!-- =============================
+     UI: User Table Component
+============================= -->
+<UserTable {users} {loading} {isAdmin} /> 
+</div>

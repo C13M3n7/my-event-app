@@ -54,7 +54,6 @@
     displayPhone = `${countryCode}${phone}`;
   }
 
-  // Add this to handle send events from child components
   function handleSend() {
     dispatch('send');
   }
@@ -104,19 +103,19 @@
         <slot name="social-login" />
       </div>
     {:else if otpSent && !showProfileForm}
-    <OTPVerification
-      bind:otp
+      <OTPVerification
+      {otp}
       {isOtpComplete}
       {isLoading}
       {countdown}
       {error}
       {activeTab}
-      email={verifiedEmail || email}
+      {email}
       {displayPhone}
       {isWaitingForAuth}
       on:verify={handleVerify}
-      on:resend={handleResend}
       on:clear={handleClear}
+      on:resend={handleResend}
     />
     {:else}
       <slot name="profile-form" />

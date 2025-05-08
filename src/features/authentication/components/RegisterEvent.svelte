@@ -6,13 +6,13 @@
   import { signInWithPopup } from 'firebase/auth';
   import { doc, setDoc } from 'firebase/firestore';
   import { db } from '$lib/firebase';
+  import { goto } from '$app/navigation';
   import { 
     sendPhoneVerification, 
     verifyPhoneOTP, 
     sendEmailOTP,
     verifyEmailOTP 
   } from '../services/authService';
-  import { goto } from '$app/navigation';
 
   // State variables
   let activeTab: 'email' | 'phone' = 'email';
@@ -37,38 +37,49 @@
   const registrationFlowParams = {
     title: 'Event Registration',
     redirectUrl: 'events',
-    programType: 'EVENT_REGISTRATION' as const,
+    programType: 'EVENT_REGISTRATION' as const, // Add 'as const' to ensure type inference
     showProfileForm: false
   };
 
-  const verifyOTP = async () => {
-    isWaitingForAuth = true;
-    error = '';
-    
-    try {
-      const fullOtp = otp.join('');
-      if (fullOtp.length !== 6) {
-        error = 'Please enter complete OTP';
-        return;
-      }
+const verifyOTP = async () => {
+  try {
+    const fullOtp = otp.join('');
+    const normalizedEmail = email.trim().toLowerCase();
 
-      if (activeTab === 'email') {
-        await verifyEmailOTP(email, fullOtp, 'EVENT_REGISTRATION');
-      } else {
-        await verifyPhoneOTP(displayPhone, fullOtp);
-      }
-      
-      showSuccessMessage = true;
-      setTimeout(() => goto('/events'), 2000);
-    } catch (err: unknown) {
+    const result = await verifyEmailOTP(normalizedEmail, fullOtp, 'REGISTRATION');
+    const { token, uid } = result;
+
+    const userRef = doc(db, 'users', uid);
+    await setDoc(userRef, {
+      email: normalizedEmail,
+      type: 'EVENT_REGISTRATION',
+      authMethod: 'EMAIL',
+      createdAt: new Date().toISOString(),
+      verified: true,
+      admin: false
+    }, { merge: true });
+
+    const indexRef = doc(db, 'emailToUid', normalizedEmail);
+    await setDoc(indexRef, {
+      uid,
+      updatedAt: new Date().toISOString()
+    });
+
+    showSuccessMessage = true;
+    setTimeout(() => goto('/events'), 2000);
+
+  } catch (err: any) {
+    if (err?.code === 'permission-denied') {
+      error = 'This email belongs to an admin. Please use the admin portal to log in.';
+    } else {
       error = err instanceof Error ? err.message : 'Verification failed';
-      otp = Array(6).fill('');
-    } finally {
-      isWaitingForAuth = false;
     }
-  };
-  
-  // Handlers
+    otp = Array(6).fill('');
+  } finally {
+    isWaitingForAuth = false;
+  }
+};
+
   const sendVerification = async () => {
     error = "";
     isLoading = true;
@@ -78,7 +89,7 @@
         displayPhone = `${countryCode}${phone}`;
         confirmationResult = await sendPhoneVerification(displayPhone);
       } else if (activeTab === 'email') {
-        await sendEmailOTP(email, 'EVENT_REGISTRATION');
+        await sendEmailOTP(email, 'REGISTRATION');
       }
 
       otpSent = true;
@@ -90,7 +101,7 @@
       isLoading = false;
     }
   };
-  
+
   function resetOTP() {
     otp = Array(6).fill('');
   }
@@ -133,7 +144,8 @@
     if (!userEmail) throw new Error('No email found from social login');
     
     // Create user record for event registration
-    const userRef = doc(db, 'users', userEmail);
+    const userRef = doc(db, 'users', result.user.uid); // Use uid from result.user
+
     await setDoc(userRef, {
       email: userEmail,
       type: 'EVENT_REGISTRATION',
