@@ -1,32 +1,43 @@
+<!-- src/features/events/components/EventDetails.svelte -->
 <script lang="ts">
     import EventTabs from './EventTabs.svelte';
     import { goto } from '$app/navigation';
-    import type { Event, FestivalData } from '../types';
-  
-    export let event: Event = {
-        title: '',
-        location: '',
-        image: '',
-        price: '0', // Default price
-        // other required properties
-    };
+    import type { Event } from '../types';
 
-    const festivalData: FestivalData = {
-        videoUrl: "https://youtu.be/festival2024",
-        socialMedia: {
-            instagram: "@harvestfusion",
-            facebook: "HarvestFusionFest"
+    export let event: Event = {
+        id: '',
+        title: '',
+        description: '',
+        image: '',
+        price: '0',
+        is_free: false,
+        organiser: '',
+        location: '',
+        start_date: '',
+        end_date: '',
+        event_types: [],
+        features: {
+            music: '',
+            food: '',
+            retail: '',
+            engagement: ''
         },
-        organizers: [
-            { name: "Sarawak Cultural Board", role: "Main Organizer" },
-            { name: "Kuching City Council", role: "Venue Partner" }
-        ],
-        vendors: ["Bakeh Cookhouse", "Tuak Collective", "Artisan Market", "Gawai Cookies Co"]
+        agenda: [],
+        speakers: [],
+        socialMedia: {
+            instagram: '',
+            facebook: ''
+        },
+        venueMapUrl: null,
+        layoutUrl: null,
+        videoUrl: '',
+        organizers: [],
+        vendors: [],
+        registration_url: ''
     };
 
     function navigateToPayment() {
-        // Safely handle cases where price might be undefined
-        const price = event?.price ? event.price.replace(/\D/g, '') : '50';
+        const price = event?.price ? event.price.replace(/\D/g, '') : '0';
         goto(`/ticket-payment?event=${encodeURIComponent(event.title)}&type=festival&price=${price}`);
     }
 </script>
@@ -43,7 +54,7 @@
 
     <!-- Hero Section -->
     <section class="relative mb-4">
-        <img src={event.image} alt={event.title} class="w-full h-[300px] md:h-[400px] object-cover block" />
+        <img src={event.image || event.image_url} alt={event.title} class="w-full h-[300px] md:h-[400px] object-cover block" />
         <div class="absolute bottom-0 left-0 right-0 px-4 py-6 bg-gradient-to-t from-black/80 to-transparent text-white">
             <h1 class="text-2xl font-bold leading-snug m-0">{event.title}</h1>
             <p class="mt-1 text-base opacity-90">{event.location}</p>
@@ -51,9 +62,10 @@
     </section>
 
     <!-- Tab Navigation and Content -->
-    <EventTabs {event} {festivalData} />
+    <EventTabs {event} />
 
     <!-- Fixed CTA -->
+    {#if !event.is_free}
     <div class="fixed bottom-0 left-0 right-0 px-4 py-4 bg-gradient-to-t from-white to-transparent flex justify-center">
         <button
             on:click={navigateToPayment}
@@ -65,4 +77,5 @@
             Get Tickets
         </button>
     </div>
+    {/if}
 </main>

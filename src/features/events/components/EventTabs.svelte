@@ -1,14 +1,13 @@
+<!-- src/features/events/components/EventTabs.svelte -->
 <script lang="ts">
     import EventAbout from './EventAbout.svelte';
     import EventProgram from './EventProgram.svelte';
     import EventVenue from './EventVenue.svelte';
-    import type { Event, FestivalData, EventTab, FestivalDay } from '../types';
+    import type { Event, EventTab } from '../types';
 
     export let event: Event;
-    export let festivalData: FestivalData;
-
+    
     let activeTab: EventTab = 'about';
-    let selectedDay: FestivalDay = 'festival';
 </script>
 
 <!-- Tab Navigation -->
@@ -61,10 +60,10 @@
 <!-- Content Sections -->
 <div class="px-4 mb-6">
     {#if activeTab === 'about'}
-        <EventAbout {event} {festivalData} {selectedDay} />
+        <EventAbout {event} />
     {:else if activeTab === 'program'}
-        <EventProgram {festivalData} {selectedDay} />
+        <EventProgram {event} />
     {:else if activeTab === 'map'}
-        <EventVenue {event} {festivalData} />
+        <EventVenue {event} />
     {/if}
 </div>
